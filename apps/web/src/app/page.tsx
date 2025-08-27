@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Users, Brain, Zap } from "lucide-react";
+import { selectRandomTutor, selectRandomStudent } from "@/app/action";
 
 export default function LandingPage(): React.ReactNode {
   return (
@@ -35,18 +36,19 @@ export default function LandingPage(): React.ReactNode {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/tutor">
-              <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-3">
+            <form action={selectRandomTutor}>
+              <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-3" type="submit">
                 <Users className="mr-2 h-5 w-5" />
                 Tutor Dashboard
               </Button>
-            </Link>
-            <Link href="/student">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg px-8 py-3">
+            </form>
+            
+            <form action={selectRandomStudent}>
+              <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg px-8 py-3" type="submit">
                 <BookOpen className="mr-2 h-5 w-5" />
                 Student Vault
               </Button>
-            </Link>
+            </form>
           </div>
         </div>
       </section>
@@ -169,16 +171,16 @@ export default function LandingPage(): React.ReactNode {
             Join the future of personalized tutoring with AI-powered session intelligence
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/tutor">
-              <Button size="lg" className="w-full sm:w-auto">
+            <form action={selectRandomTutor}>
+              <Button type="submit" size="lg" className="w-full sm:w-auto">
                 Start as a Tutor
               </Button>
-            </Link>
-            <Link href="/student">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+            </form>
+            <form action={selectRandomStudent}>
+              <Button type="submit" variant="outline" size="lg" className="w-full sm:w-auto">
                 Access as Student
               </Button>
-            </Link>
+            </form>
           </div>
         </div>
       </section>

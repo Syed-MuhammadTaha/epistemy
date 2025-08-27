@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,12 @@ import {
   Loader2
 } from "lucide-react";
 
-export default function UploadSession(): React.ReactNode {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function UploadSession({ params }: PageProps): React.ReactNode {
+  const { id: tutorId } = use(params);
   const router = useRouter();
   const [uploadType, setUploadType] = useState<'transcript' | 'video'>('transcript');
   const [file, setFile] = useState<File | null>(null);
@@ -45,7 +50,7 @@ export default function UploadSession(): React.ReactNode {
     
     // Generate a new session ID and redirect
     const newSessionId = `session-${Date.now()}`;
-    router.push(`/tutor/session/${newSessionId}`);
+    router.push(`/tutor/${tutorId}/session/${newSessionId}`);
   };
 
   return (
@@ -55,7 +60,7 @@ export default function UploadSession(): React.ReactNode {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link href="/tutor" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+              <Link href={`/tutor/${tutorId}`} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
                 <ArrowLeft className="h-5 w-5 mr-2" />
                 Back to Dashboard
               </Link>
@@ -87,18 +92,7 @@ export default function UploadSession(): React.ReactNode {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Student Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="studentName">Student Name</Label>
-                    <Input
-                      id="studentName"
-                      type="text"
-                      placeholder="Enter student name"
-                      value={studentName}
-                      onChange={(e) => setStudentName(e.target.value)}
-                      required
-                    />
-                  </div>
+                <div className="md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject</Label>
                     <Input
