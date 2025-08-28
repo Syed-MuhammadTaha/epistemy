@@ -58,13 +58,13 @@ export default async function StudentDashboard({ params, searchParams }: PagePro
         {/* Attach Session via Link */}
         <Card>
           <CardHeader>
-            <CardTitle>Attach a Session</CardTitle>
-            <CardDescription>Paste the session link provided by your tutor (in format session/SESSION_ID)</CardDescription>
+            <CardTitle>Enroll in a Session</CardTitle>
+            <CardDescription>Paste the session link provided by your tutor to enroll</CardDescription>
           </CardHeader>
           <CardContent>
             <form action={attachSessionToStudent.bind(null, studentId)} className="flex gap-2">
               <Input name="session_link" placeholder="Paste session link or ID" className="flex-1" />
-              <Button type="submit">Save</Button>
+              <Button type="submit">Enroll</Button>
             </form>
           </CardContent>
         </Card>
@@ -73,12 +73,12 @@ export default async function StudentDashboard({ params, searchParams }: PagePro
         <Card>
           <CardHeader>
             <CardTitle>Your Sessions</CardTitle>
-            <CardDescription>Access your upcoming and past sessions</CardDescription>
+            <CardDescription>Access your enrolled sessions</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {sessions.length === 0 && (
-                <p className="text-sm text-gray-600">No sessions yet. Paste a link above to attach one.</p>
+                <p className="text-sm text-gray-600">No sessions yet. Paste a link above to enroll in one.</p>
               )}
               {sessions.map((session) => {
                 const locked = !session.is_paid;
@@ -90,6 +90,9 @@ export default async function StudentDashboard({ params, searchParams }: PagePro
                           <h3 className="text-lg font-semibold text-gray-900">{session.title}</h3>
                           <Badge variant={session.status === 'published' ? 'default' : session.status === 'processing' ? 'secondary' : 'outline'}>
                             {session.status}
+                          </Badge>
+                          <Badge variant={session.is_enrolled ? 'default' : 'secondary'}>
+                            {session.is_enrolled ? 'Enrolled' : 'Not Enrolled'}
                           </Badge>
                           <Badge variant={session.is_paid ? 'default' : 'destructive'}>
                             {session.is_paid ? 'Paid' : 'Unpaid'}

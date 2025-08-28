@@ -174,10 +174,10 @@ export async function getStudentBySessionId(sessionId: string): Promise<User | n
 
 export async function getSessionsForStudent(studentId: string): Promise<Session[]> {
   try {
-    console.log(`Fetching sessions for student ID: ${studentId}...`);
+    console.log(`Fetching enrolled sessions for student ID: ${studentId}...`);
     const data = await sql<Session[]>`
       SELECT * FROM sessions 
-      WHERE student_id = ${studentId}
+      WHERE student_id = ${studentId} AND is_enrolled = true
       ORDER BY date DESC
     `;
     
@@ -401,10 +401,10 @@ export async function updateSessionProgress(sessionId: string, progressFeedback:
 export type EditableQuizQuestion = {
   id?: string;
   subtopic: string;
-  question: string;
-  options: string[];
+    question: string;
+    options: string[];
   correct_answer: number;
-  explanation: string;
+    explanation: string;
 };
 
 export async function replaceQuizQuestions(sessionId: string, questions: EditableQuizQuestion[]): Promise<void> {
@@ -432,6 +432,106 @@ export async function replaceQuizQuestions(sessionId: string, questions: Editabl
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to replace quiz questions.');
+  }
+}
+
+// New functions for student management and session creation
+export async function fetchStudents(): Promise<User[]> {
+  try {
+    console.log('Fetching students data...');
+    const data = await sql<User[]>`SELECT * FROM users WHERE role = 'student'`;
+    console.log(`✅ Fetched ${data.length} students`);
+    return data;
+  } catch (error) {
+    console.error('Database Error in fetchStudents:', error);
+    throw new Error('Failed to fetch students data.');
+  }
+}
+
+export async function createSession(sessionData: {
+  tutor_id: string;
+  student_id: string;
+  transcript_text: string;
+}): Promise<string> {
+  try {
+    console.log('Creating new session...');
+    const sessionId = randomUUID();
+    const currentDate = new Date().toISOString();
+    
+    await sql`
+      INSERT INTO sessions (
+        id, 
+        tutor_id, 
+        student_id, 
+        subject, 
+        title, 
+        main_topic, 
+        date, 
+        is_paid, 
+        is_enrolled, 
+        status, 
+        transcript_text, 
+        topics, 
+        progress_feedback,
+        share_link
+      ) VALUES (
+        ${sessionId},
+        ${sessionData.tutor_id},
+        ${sessionData.student_id},
+        ${''},
+        ${''},
+        ${''},
+        ${currentDate},
+        false,
+        false,
+        'processing',
+        ${sessionData.transcript_text || ''},
+        ${[]},
+        ${''},
+        ${`session/${sessionId}`}
+      )
+    `;
+    
+    console.log(`✅ Created session with ID: ${sessionId}`);
+    return sessionId;
+  } catch (error) {
+    console.error('Database Error in createSession:', error);
+    throw new Error('Failed to create session.');
+  }
+}
+
+export async function checkSessionEnrollment(sessionId: string, studentId: string): Promise<{ isOwner: boolean; isEnrolled: boolean }> {
+  try {
+    const session = await sql<Session[]>`
+      SELECT student_id, is_enrolled FROM sessions WHERE id = ${sessionId}
+    `;
+    
+    if (session.length === 0) {
+      throw new Error('Session not found');
+    }
+    
+    const sessionData = session[0];
+    const isOwner = sessionData.student_id === studentId;
+    const isEnrolled = sessionData.is_enrolled;
+    
+    return { isOwner, isEnrolled };
+  } catch (error) {
+    console.error('Database Error in checkSessionEnrollment:', error);
+    throw new Error('Failed to check session enrollment.');
+  }
+}
+
+export async function enrollStudentInSession(sessionId: string, studentId: string): Promise<void> {
+  try {
+    await sql`
+      UPDATE sessions 
+      SET is_enrolled = true 
+      WHERE id = ${sessionId} AND student_id = ${studentId}
+    `;
+    console.log(`✅ Student ${studentId} enrolled in session ${sessionId}`);
+  } catch (error) {
+    console.error('Database Error in enrollStudentInSession:', error);
+    throw new Error('Failed to enroll student in session.');
   }
 }
 

@@ -11,15 +11,15 @@ export type Session = {
   tutor_id: string; 
   student_id?: string; 
   title: string;
-  subject: string;
+  subject: 'physics' | 'math' | 'cs' | 'english' | 'history' | 'science';
   main_topic: string;
   date: string; 
   is_paid: boolean;
+  is_enrolled: boolean;
   status: 'scheduled' | 'processing' | 'completed' | 'published';
 
   // Content
-  transcript_path?: string;
-  video_path?: string;
+  transcript_text?: string;
   topics: string[]; // list of subtopics covered in session
   progress_feedback: string; 
   quiz: QuizQuestion[]; // each question linked to a subtopic

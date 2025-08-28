@@ -1,22 +1,26 @@
 import React, { Suspense } from "react";
 import Link from "next/link";
-import { use } from "react";
 import { Brain, ArrowLeft } from "lucide-react";
 import { SessionHeader, TopicsList, ProgressFeedback, QuizSection } from "./components";
 import { SessionHeaderSkeleton, TopicsSkeleton, FeedbackSkeleton, QuizSkeleton } from "./loading";
+import { SessionToasts } from "@/app/tutor/[id]/session/[sessionId]/SessionToasts";
 
 interface PageProps {
   params: Promise<{
     id: string;      // tutor ID
     sessionId: string; // session ID
   }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default function SessionEdit({ params }: PageProps): React.ReactNode {
-  const { id: tutorId, sessionId } = use(params);
+export default async function SessionEdit({ params, searchParams }: PageProps): Promise<React.ReactNode> {
+  const { id: tutorId, sessionId } = await params;
+  const sp = (await searchParams) || {};
+  const created = typeof sp.created === 'string' ? sp.created : undefined;
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SessionToasts created={created} />
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">

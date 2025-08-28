@@ -48,187 +48,181 @@ Epistemy uses **direct LangGraph.js integration** without separate API endpoints
 - **Real-time Processing**: Immediate access to workflow results without HTTP overhead
 - **Development Efficiency**: Single codebase for UI and AI logic
 
-## ⚖️ Trade-offs & Design Decisions
+### Trade-offs
 
-### ✅ Advantages
-- **Rapid Development**: Monorepo structure enables fast iteration
-- **Type Safety**: End-to-end TypeScript ensures robust data flow
-- **Simplified Deployment**: Single application to deploy and maintain
-- **Direct Integration**: No API layer reduces complexity and latency
-- **Cost Effective**: Fewer services to manage and scale
+**Benefits:**
+- ✅ **Rapid Development**: No need to design and maintain separate API contracts
+- ✅ **Type Safety**: Shared TypeScript definitions between UI and AI workflows
+- ✅ **Simplified Deployment**: Single application to deploy and manage
+- ✅ **Real-time Integration**: Direct access to workflow state and results
 
-### ⚠️ Trade-offs
-- **Scalability Concerns**: Single service handles both UI and AI processing
-- **Resource Coupling**: Heavy AI workloads can impact UI responsiveness  
-- **Deployment Coupling**: UI and AI workflows deploy together
-- **Limited Microservice Benefits**: Cannot scale components independently
-- **Potential Memory Issues**: Large language model operations in same process as web server
+**Considerations:**
+- ⚠️ **Scalability**: All processing happens in a single application context
+- ⚠️ **Resource Management**: AI workflows and web server share the same resources
+- ⚠️ **Service Separation**: Tighter coupling between frontend and AI logic
 
-### Known Gaps & Shortcuts
-- **Authentication**: Hardcoded user IDs for development (no real auth system)
-- **File Storage**: No actual file upload/storage implementation
-- **Error Handling**: Limited error boundaries and fallback mechanisms
-- **Performance**: No caching layer for AI workflow results
-- **Testing**: Limited test coverage for AI workflows
+*Note: This approach is ideal for rapid prototyping and development. For production scale, consider separating AI workflows into dedicated services.*
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
-- pnpm (recommended) or npm
+- **Node.js**: v20.16.0 or higher
+- **pnpm**: Latest version
+- **Environment Variables**: Copy `.env.example` to `.env` and configure
 
-### Local Development Setup
-
-1. **Clone and Install**
-   ```bash
-   git clone <repository-url>
-   cd epistemy
-   pnpm install
-   ```
-
-2. **Start Development Servers**
-   ```bash
-   pnpm run dev
-   ```
-
-3. **Access the Application**
-   - **Web Interface**: http://localhost:3000
-   - **LangGraph Studio**: http://localhost:2024
-
-### Available Routes
-- `/` - Landing page
-- `/tutor` - Tutor dashboard
-- `/tutor/upload` - Session upload interface
-- `/tutor/session/[id]` - Session editing
-- `/student` - Student vault (session list)
-- `/student/[id]` - Individual session view with quiz
-
-## 📊 Evaluation & Observability
-
-### LLM-as-a-Judge Evaluation Pipeline
-
-Epistemy uses an intelligent evaluation system that compares session progress using structured analysis:
-
-#### Evaluation Workflow
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Session Data   │───▶│  Topic Extract  │───▶│  Progress Eval  │
-│  - Transcript   │    │  - Current      │    │  - Continuity   │
-│  - Previous     │    │  - Previous     │    │  - Difficulty   │
-│  - Quiz Score   │    │  - Overlap      │    │  - Gaps         │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                                        │
-┌─────────────────┐    ┌─────────────────┐             │
-│  Quiz Output    │◀───│  Quiz Generator │◀────────────┘
-│  - Questions    │    │  - Adaptive     │
-│  - Explanations │    │  - Difficulty   │
-│  - Feedback     │    │  - Targeted     │
-└─────────────────┘    └─────────────────┘
-```
-
-#### Evaluation Process
-
-1. **Topic Extraction**
-   - Extract main subject + subtopics from current session transcript
-   - Extract topics from previous session for comparison
-   - Identify knowledge continuity and progression
-
-2. **Score Integration**  
-   - Pull previous quiz performance (percentage score)
-   - Map quiz topics to current session content
-   - Use score to inform difficulty calibration
-
-3. **Progress Analysis**
-   ```json
-   {
-     "previous_topics": ["Linear Equations", "Fractions"],
-     "previous_score": "72%", 
-     "current_topics": ["Quadratic Equations", "Factorization"],
-     "current_transcript": "...",
-     "evaluation": {
-       "continuity": "builds_upon",
-       "difficulty_progression": "appropriate",
-       "knowledge_gaps": ["fraction_to_decimal_conversion"]
-     }
-   }
-   ```
-
-4. **Adaptive Quiz Generation**
-   - **High Previous Score** → Increase question difficulty
-   - **Low Previous Score** → Reinforce fundamentals  
-   - **Topic Overlap** → Bridge previous and current concepts
-   - **New Topics** → Assess foundational understanding
-
-#### Observability Features
-
-**LangGraph Studio (Port 2024)**
-- Real-time workflow execution tracing
-- Step-by-step AI decision visualization  
-- Performance metrics and timing analysis
-- Input/output inspection for each workflow node
-- Error tracking and debugging tools
-
-**Progress Tracking**
-- Session-to-session topic progression
-- Quiz performance trends
-- Knowledge gap identification
-- Learning velocity measurement
-
-#### Sample Evaluation Output
-
-```
-Progress Summary: Student demonstrated stronger understanding of 
-algebra fundamentals (previous score: 72%) and successfully 
-transitioned to quadratic equations. Current session reinforced 
-factorization concepts while introducing polynomial operations.
-
-Recommended Focus: Continue building on quadratic foundations 
-while addressing identified gaps in fraction-decimal conversions.
-
-Quiz Calibration: Moderate difficulty with 60% foundational 
-questions, 40% application problems to assess concept transfer.
-```
-
-## 🛠️ Development Commands
+### Installation
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd epistemy_v2/epistemy
+
 # Install dependencies
 pnpm install
 
-# Start all development servers
+# Start development servers
 pnpm run dev
-
-# Build for production  
-pnpm run build
-
-# Run linting
-pnpm run lint
-
-# Run type checking
-pnpm run type-check
 ```
+
+### Development Servers
+
+The `pnpm run dev` command starts both applications:
+
+- **Web Application**: http://localhost:3000
+  - Tutor dashboard and student portal
+  - Session management and quiz interface
+  
+- **LangGraph Studio**: http://localhost:2024
+  - Workflow visualization and debugging
+  - Real-time execution tracing
+  - Interactive workflow testing
+
+## 🤖 AI Workflow System
+
+### LLM-as-a-Judge Evaluation
+
+Epistemy implements **LLM-as-a-Judge** for progress evaluation:
+
+1. **Session Analysis**: AI analyzes tutoring session transcripts
+2. **Progress Assessment**: Evaluates student understanding and engagement
+3. **Personalized Feedback**: Generates specific recommendations for improvement
+4. **Adaptive Questioning**: Creates targeted quiz questions based on identified gaps
+
+### Workflow Pipeline
+
+```
+📝 Raw Transcript
+    ↓
+🧹 Clean & Normalize
+    ↓  
+📋 Extract Topics
+    ↓
+📊 Evaluate Progress  
+    ↓
+❓ Generate Quiz
+    ↓
+✅ Structured Output
+```
+
+### Observability & Tracing
+
+- **LangGraph Studio**: Visual workflow execution and debugging at http://localhost:2024
+- **Real-time Tracing**: Monitor AI decision-making process
+- **Performance Metrics**: Track workflow execution times and success rates
+- **Error Handling**: Comprehensive error logging and recovery mechanisms
 
 ## 📁 Project Structure
 
 ```
-epistemy/
+epistemy_v2/epistemy/
 ├── apps/
 │   ├── web/                 # Next.js frontend application
 │   │   ├── src/
-│   │   │   ├── app/         # App router pages
+│   │   │   ├── app/         # Next.js app router pages
 │   │   │   ├── components/  # Reusable UI components  
 │   │   │   └── lib/         # Utilities and data
 │   │   └── package.json
 │   └── agents/              # LangGraph.js workflows
 │       ├── src/
-│       │   └── react-agent/ # AI workflow definitions
+│       │   └── agent/       # AI workflow definitions
+│       │       ├── graph.ts        # Main workflow orchestration
+│       │       ├── example.ts      # Usage examples
+│       │       └── utils/          # Workflow utilities
+│       │           ├── state.ts    # State & schema definitions
+│       │           ├── prompts.ts  # AI prompt templates
+│       │           ├── nodes.ts    # Workflow node implementations
+│       │           └── index.ts    # Barrel exports
 │       └── package.json
 ├── package.json             # Root workspace configuration
 ├── pnpm-workspace.yaml      # Workspace definition
 └── turbo.json              # Build pipeline configuration
 ```
 
+## 🎯 Key Features
+
+### Tutor Dashboard
+- **Session Creation**: Upload and process tutoring session content
+- **Progress Tracking**: AI-generated student evaluations and feedback
+- **Quiz Management**: Automated quiz generation with customizable questions
+- **Calendly Integration**: Seamless scheduling integration
+
+### Student Portal  
+- **Session Access**: View processed session content and materials
+- **Interactive Quizzes**: AI-generated questions with instant feedback
+- **Progress Monitoring**: Track learning progress and achievements
+- **Enrollment Management**: Secure session enrollment and payment handling
+
+### AI Workflows
+- **Transcript Processing**: Clean and normalize session recordings
+- **Topic Extraction**: Identify key learning concepts automatically  
+- **Progress Evaluation**: LLM-as-a-Judge assessment of student performance
+- **Quiz Generation**: Create targeted questions based on session content
+
+## 🔧 Development
+
+### Running Tests
+```bash
+# Run all tests
+pnpm run test
+
+# Run tests for specific app
+pnpm run test --filter=web
+pnpm run test --filter=agents
+```
+
+### Building
+```bash
+# Build all applications
+pnpm run build
+
+# Build specific app
+pnpm run build --filter=web
+pnpm run build --filter=agents
+```
+
+### Linting
+```bash
+# Lint all code
+pnpm run lint
+
+# Fix linting issues
+pnpm run lint:fix
+```
+
+## 📊 Evaluation & Observability
+
+### LLM-as-a-Judge Implementation
+- **Multi-criteria Assessment**: Evaluates comprehension, engagement, and progress
+- **Contextual Feedback**: Provides specific, actionable recommendations
+- **Adaptive Learning**: Adjusts difficulty based on student performance
+- **Quality Assurance**: Validates AI-generated content for accuracy
+
+### Monitoring & Debugging
+- **LangGraph Studio**: Visual workflow execution at http://localhost:2024
+- **Execution Tracing**: Step-by-step workflow monitoring
+- **Performance Analytics**: Track processing times and success rates
+- **Error Recovery**: Robust error handling and fallback mechanisms
+
 ---
 
-Built with ❤️ using Next.js, LangGraph.js, and modern web technologies.
+**Built with ❤️ using Next.js, LangGraph.js, and modern AI workflows**

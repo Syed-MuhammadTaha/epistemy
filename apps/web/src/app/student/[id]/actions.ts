@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { updateSessionPaymentStatus } from '@/lib/data'
+import { updateSessionPaymentStatus, checkSessionEnrollment, enrollStudentInSession } from '@/lib/data'
 // Removed incorrect sql import; using a local postgres client instead.
 import postgres from 'postgres'
 
@@ -21,27 +21,37 @@ export async function attachSessionToStudent(studentId: string, _formData: FormD
     redirect(`/student/${studentId}?error=invalid`)
   }
 
-  // Check existing assignment
-  const rows = await db`SELECT id, student_id FROM sessions WHERE id = ${sessionId} LIMIT 1`
-  if (!rows || rows.length === 0) {
+  // Step 1: Check if session exists and get enrollment status
+  let isOwner = false
+  let isEnrolled = false
+  
+  try {
+    const result = await checkSessionEnrollment(sessionId, studentId)
+    isOwner = result.isOwner
+    isEnrolled = result.isEnrolled
+  } catch (error) {
+    console.error('Error checking session enrollment:', error)
     redirect(`/student/${studentId}?error=not_found`)
   }
-  const current = rows[0]
-  if (current.student_id && current.student_id !== studentId) {
-    // Already registered to another student
-    redirect(`/student/${studentId}?error=already_registered`)
+  
+  // Step 2: Check if this session belongs to the current student
+  if (!isOwner) {
+    redirect(`/student/${studentId}?error=not_yours`)
   }
-  if (current.student_id === studentId) {
-    redirect(`/student/${studentId}?attached=already`)
+  
+  // Step 3: Check if already enrolled
+  if (isEnrolled) {
+    redirect(`/student/${studentId}?error=already_enrolled`)
   }
-
-  await db`
-    UPDATE sessions
-    SET student_id = ${studentId}
-    WHERE id = ${sessionId}
-  `
-
-  redirect(`/student/${studentId}?attached=success`)
+  
+  // Step 4: Enroll the student in the session
+  try {
+    await enrollStudentInSession(sessionId, studentId)
+    redirect(`/student/${studentId}?attached=success`)
+  } catch (error) {
+    console.error('Error enrolling student:', error)
+    redirect(`/student/${studentId}?error=enrollment_failed`)
+  }
 }
 
 export async function markSessionPaid(studentId: string, _formData: FormData) {
