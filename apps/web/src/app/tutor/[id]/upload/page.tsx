@@ -66,23 +66,21 @@ export default async function UploadSession({ params }: PageProps): Promise<Reac
             </CardHeader>
             <CardContent>
               <form action={createSessionAction.bind(null, tutorId)} className="space-y-6">
-                {/* Student Selection and Subject */}
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="student">Select Student</Label>
-                    <Select name="student_id" required>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choose a student..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {students.map((student) => (
-                          <SelectItem key={student.id} value={student.id}>
-                            {student.display_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* Student Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="student">Select Student</Label>
+                  <Select name="student_id" required>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a student..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          {student.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Transcript Text */}

@@ -79,25 +79,6 @@ export const reduceSummaryPrompt = ChatPromptTemplate.fromTemplate(`
 
     
     `);
-    
-    
-// Topic extraction prompt
-export const topicsPrompt = ChatPromptTemplate.fromTemplate(`
-    You are an expert at analyzing tutoring session summaries and extracting structured educational metadata.
-    
-    Given the session summary:
-    
-    {summary}
-    
-    Extract the following:
-    - **Title**: A short, descriptive agenda or title for the session (e.g., "Practice with Quadratic Equations" or "Reading Comprehension Strategies").  
-    - **Subject**: The overall subject area (must be one of: physics, math, cs, english, chemistry).  
-    - **Main Topic**: The primary topic of discussion within the subject (e.g., for math → "quadratic equations", for english → "essay writing").  
-    - **SubTopics**: A list of supporting or secondary concepts covered in the session.
-
-    Return the final result in the JSON
-    `);
-    
 
 
 export const evaluationWithHistoryPrompt = ChatPromptTemplate.fromTemplate(`

@@ -4,6 +4,8 @@ import { Brain, ArrowLeft } from "lucide-react";
 import { SessionHeader, TopicsList, ProgressFeedback, QuizSection } from "./components";
 import { SessionHeaderSkeleton, TopicsSkeleton, FeedbackSkeleton, QuizSkeleton } from "./loading";
 import { SessionToasts } from "@/app/tutor/[id]/session/[sessionId]/SessionToasts";
+import { SessionRefresh } from "./SessionRefresh";
+import { getSession } from "@/lib/data";
 
 interface PageProps {
   params: Promise<{
@@ -18,9 +20,17 @@ export default async function SessionEdit({ params, searchParams }: PageProps): 
   const sp = (await searchParams) || {};
   const created = typeof sp.created === 'string' ? sp.created : undefined;
 
+  // Get session data to check if it's still processing
+  const session = await getSession(sessionId);
+  const isProcessing = session?.status === 'processing';
+
   return (
     <div className="min-h-screen bg-gray-50">
       <SessionToasts created={created} />
+      
+      {/* Auto-refresh component for processing sessions */}
+      {isProcessing && <SessionRefresh sessionId={sessionId} isProcessing={isProcessing} />}
+      
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">

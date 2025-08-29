@@ -6,7 +6,6 @@ import {
   WorkflowAnnotation,
   cleanTranscriptNode,
   chunkMapTranscriptNode,
-  topicsNode,
   evaluationNode,
   quizNode,
   previousSessionNode,
@@ -19,7 +18,6 @@ const workflow = new StateGraph(WorkflowAnnotation)
   .addNode("cleanTranscript", cleanTranscriptNode)
   .addNode("chunkMapTranscript", chunkMapTranscriptNode)
   .addNode("reduceSummary", reduceSummaryNode)
-  .addNode("extractTopics", topicsNode)
   .addNode("fetchPreviousSession", previousSessionNode)
   .addNode("evaluateProgress", evaluationNode)
   .addNode("generateQuiz", quizNode)
@@ -28,8 +26,7 @@ const workflow = new StateGraph(WorkflowAnnotation)
   .addEdge("__start__", "cleanTranscript")
   .addEdge("cleanTranscript", "chunkMapTranscript")
   .addEdge("chunkMapTranscript", "reduceSummary")
-  .addEdge("reduceSummary", "extractTopics")
-  .addEdge("extractTopics", "fetchPreviousSession")
+  .addEdge("reduceSummary", "fetchPreviousSession")
   .addEdge("fetchPreviousSession", "evaluateProgress")
   .addEdge("evaluateProgress", "generateQuiz")
   .addEdge("generateQuiz", "__end__");

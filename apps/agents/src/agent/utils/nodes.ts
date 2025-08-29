@@ -18,7 +18,6 @@ import {
 } from "./state.js";
 import {
   reduceSummaryPrompt,
-  topicsPrompt,
   evaluationWithHistoryPrompt,
   quizGenerationPrompt,
   evaluationFirstSessionPrompt,
@@ -117,31 +116,6 @@ export async function reduceSummaryNode(
   return { summary: result.summary, subject: result.subject, mainTopic: result.mainTopic, topics: result.subTopics, title: result.title };
 }
 
-// Topics extraction node
-export async function topicsNode(
-  state: WorkflowState,
-  _config: RunnableConfig,
-): Promise<WorkflowUpdate> {
-  console.log("🏷️ Extracting topics...");
-
-  const topicsChain = topicsPrompt.pipe(
-    llm.withStructuredOutput(TopicsSchema)
-  );
-
-  const result = await topicsChain.invoke({
-    summary: state.summary || ""
-  });
-
-  console.log("✅ Topics extracted successfully");
-
-  return {
-    title: result.title,
-    subject: result.subject,
-    mainTopic: result.mainTopic,
-    topics: result.subTopics,
-  };
-}
-
 // Previous session data retrieval node
 export async function previousSessionNode(
   state: WorkflowState,
@@ -207,7 +181,8 @@ export async function previousSessionNode(
         AND student_id = ${state.studentId}
         AND is_attempted = true
       ORDER BY completed_at DESC
-      LIMIT 1
+      LIMIT 2
+      OFFSET 1
     `;
     
     // Extract session score (default to 0 if no attempt found)

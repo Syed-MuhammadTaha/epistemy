@@ -415,10 +415,11 @@ export async function replaceQuizQuestions(sessionId: string, questions: Editabl
       await trx`DELETE FROM quiz_questions WHERE session_id = ${sessionId}`;
 
       for (const q of questions) {
+        const questionId = randomUUID(); // Generate a new UUID for each question
         await trx`
           INSERT INTO quiz_questions (id, session_id, subtopic, question, options, correct_answer, explanation)
           VALUES (
-            ${q.id ?? null},
+            ${questionId},
             ${sessionId},
             ${q.subtopic},
             ${q.question},
@@ -532,6 +533,74 @@ export async function enrollStudentInSession(sessionId: string, studentId: strin
   } catch (error) {
     console.error('Database Error in enrollStudentInSession:', error);
     throw new Error('Failed to enroll student in session.');
+  }
+}
+
+export async function getStudentName(studentId: string): Promise<string | null> {
+  try {
+    console.log(`Fetching student name for ID: ${studentId}...`);
+    const data = await sql<{ display_name: string }[]>`
+      SELECT display_name FROM users 
+      WHERE role = 'student' AND id = ${studentId} 
+      LIMIT 1
+    `;
+    
+    return data.length > 0 ? data[0].display_name : null;
+  } catch (error) {
+    console.error('Database Error in getStudentName:', error);
+    throw new Error('Failed to fetch student name.');
+  }
+}
+
+export async function updateSessionWithLangGraphResults(
+  sessionId: string, 
+  results: {
+    title: string;
+    subject: 'physics' | 'math' | 'cs' | 'english' | 'history' | 'science';
+    mainTopic: string;
+    topics: string[];
+    evaluation: string;
+    quiz: Array<{
+      subtopic: string;
+      question: string;
+      options: string[];
+      correctAnswer: number;
+      explanation: string;
+    }>;
+  }
+): Promise<void> {
+  try {
+    console.log(`Updating session ${sessionId} with LangGraph results...`);
+    console.log('Results received:', JSON.stringify(results, null, 2));
+    
+    // Update the session with generated content
+    await sql`
+      UPDATE sessions
+      SET title = ${results.title},
+          subject = ${results.subject},
+          main_topic = ${results.mainTopic},
+          topics = ${results.topics},
+          progress_feedback = ${results.evaluation},
+          status = 'completed'
+      WHERE id = ${sessionId}
+    `;
+    
+    console.log(`✅ Session ${sessionId} updated successfully`);
+
+    // Replace quiz questions
+    console.log(`Replacing ${results.quiz.length} quiz questions...`);
+    await replaceQuizQuestions(sessionId, results.quiz.map(q => ({
+      subtopic: q.subtopic,
+      question: q.question,
+      options: q.options,
+      correct_answer: q.correctAnswer,
+      explanation: q.explanation
+    })));
+
+    console.log(`✅ Successfully updated session ${sessionId} with LangGraph results`);
+  } catch (error) {
+    console.error('Database Error in updateSessionWithLangGraphResults:', error);
+    throw new Error('Failed to update session with LangGraph results.');
   }
 }
 
