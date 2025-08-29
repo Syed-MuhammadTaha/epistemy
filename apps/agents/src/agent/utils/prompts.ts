@@ -3,23 +3,83 @@
  */
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 
-// Summary generation prompt
-export const summaryPrompt = ChatPromptTemplate.fromTemplate(`
-    You are an expert tutor’s assistant specializing in summarizing educational sessions.
+export const cleanTranscriptPrompt = ChatPromptTemplate.fromTemplate(`
+    You are an expert assistant that cleans and preprocesses tutoring transcripts.
     
-    Your task is to summarize the following transcript of a tutoring session:
+    Transcript to clean:
+    {rawTranscript}
     
-    {cleanedTranscript}
+    Your task:
+    - Remove irrelevant small talk, greetings, and casual chatter (e.g., "How are you?", "scroll up", "wait")
+    - Eliminate incomplete, incoherent, or redundant fragments that don't contribute to the educational flow
+    - Keep all educational content intact: questions, explanations, problem-solving steps, examples, and strategies
+    - Normalize formatting into clear, readable sentences
+    - Do NOT summarize; keep as much relevant detail as possible, only cleaner
+
+
+    Return the cleaned transcript as a JSON object.
     
-    The summary should serve as a foundation for later steps such as subject classification, topic extraction, progress evaluation, and quiz generation.
-    
-    When writing the summary:
-    - Identify and clearly list the **main topics** the tutor and student discussed.  
-    - Highlight the **key concepts explained** or demonstrated, avoiding repetition or irrelevant chit-chat.  
-    - Emphasize the **learning objectives achieved**, i.e., what the student was expected to understand or practice by the end of the session.  
-    - If applicable, note **problem-solving methods**, examples, or strategies introduced by the tutor.  
-    - Keep the summary **concise, factual, and educational**, avoiding filler or conversational details.  
     `);
+    
+    
+
+    // Map (chunk) prompt — returns only JSON with no extra text
+export const mapTranscriptPrompt = ChatPromptTemplate.fromTemplate(`
+    You are an expert tutor’s assistant. You are given a transcript chunk from an educational session.
+    
+    CHUNK: {chunk}
+
+    This is **only a partial segment**, so avoid making global assumptions about the entire session.
+    Focus on capturing **local knowledge** from this chunk only.
+
+    Analyze this chunk to extract:
+    - summary: A concise, factual local summary of this chunk
+    - subject: The academic subject (must be one of: "math", "physics", "chemistry", "english", "cs")
+    - mainTopic: The main topic discussed in this chunk
+    - topics: An array of key subtopics mentioned in this chunk
+    
+    Rules:
+    1. Return ONLY the JSON object. No explanations, no trailing text.
+    3. The "summary" must focus on educational content: student question(s), tutor explanation(s), examples, problem-solving methods. Exclude navigation, filler, greetings, or short back-and-forth.
+    4. "mainTopic" must be the single most central idea in this chunk (do not invent global titles).
+    5. "topics" must be **conceptual** tags (e.g., "graph interpretation", "elimination strategies", "reading comprehension", "biodiversity example"). Do NOT include raw numbers, dates, or filler phrases.
+    6. Do NOT hallucinate facts or invent content not grounded in the chunk. If an example is mentioned verbatim (e.g., "Lake Abel"), you may include a normalized tag such as "biodiversity example".
+    7. Keep all strings short and canonical (prefer lowercase, hyphen or space separated is acceptable).
+    
+    `);
+
+
+    
+
+// Summary generation prompt
+// Reduce prompt: aggregate multiple chunks
+export const reduceSummaryPrompt = ChatPromptTemplate.fromTemplate(`
+    You are an expert tutor’s assistant. You have been given summaries of multiple transcript chunks. 
+    Each chunk already has a local summary, subject, main topic, and subtopics.
+    
+    Your task: **Aggregate all chunks into one coherent, global session summary**.
+    
+    Here are the chunks:
+    {chunks}
+    
+    Use these rules:
+    1. **Identify a single universal subject** of the session. (Must be one of: physics, math, cs, english, chemistry).  
+       - If multiple subjects are present, pick the **dominant one** based on chunk frequency and content weight.  
+    2. **Merge the summaries** into one global summary:
+       - Preserve important concepts and learning objectives.
+       - Remove redundancy and contradictions.
+       - Ensure clarity and coherence as if written from scratch.  
+    3. **Extract the overall mainTopic** that best represents the session.  
+       - This should be broad enough to encompass the session’s purpose.  
+    4. **Merge all subtopics into a structured list**:
+       - Deduplicate overlapping subtopics.
+       - Keep hierarchy clear (from general to specific).  
+    5. **Extract the title** of the session.
+    6. Output the final result in the JSON
+
+    
+    `);
+    
     
 // Topic extraction prompt
 export const topicsPrompt = ChatPromptTemplate.fromTemplate(`
@@ -34,6 +94,8 @@ export const topicsPrompt = ChatPromptTemplate.fromTemplate(`
     - **Subject**: The overall subject area (must be one of: physics, math, cs, english, chemistry).  
     - **Main Topic**: The primary topic of discussion within the subject (e.g., for math → "quadratic equations", for english → "essay writing").  
     - **SubTopics**: A list of supporting or secondary concepts covered in the session.
+
+    Return the final result in the JSON
     `);
     
 
@@ -74,6 +136,8 @@ export const evaluationWithHistoryPrompt = ChatPromptTemplate.fromTemplate(`
     
     4. Address {studentName} by name in the final evaluation summary, then use "you" afterwards.  
     Keep the tone supportive and instructional.
+
+    Return the final result in the JSON
     `);
 
 
@@ -102,6 +166,8 @@ export const evaluationFirstSessionPrompt = ChatPromptTemplate.fromTemplate(`
     3. Provide a baseline evaluation that highlights {studentName}’s starting point in {subject}, the significance of the main topic "{mainTopic}", and the role of each subtopic.  
     4. Address {studentName} by name once in the summary, then use "you" afterwards.  
     Keep the evaluation concise, educational, and constructive.
+
+    Return the final result in the JSON
     `);
     
     
@@ -132,5 +198,7 @@ export const evaluationFirstSessionPrompt = ChatPromptTemplate.fromTemplate(`
            - If struggled → test conceptual clarity in a supportive way.
         
         4. Output only the array of QuizQuestion objects (no extra text).  
+
+        Return the final result in the JSON
         `);
         

@@ -31,21 +31,45 @@ export const WorkflowAnnotation = Annotation.Root({
   transcript: Annotation<string>,
   studentId: Annotation<string>,
   tutorId: Annotation<string>,
+  studentName: Annotation<string>,
+
+  //Clean transcript
   cleanedTranscript: Annotation<string>,
+
+  //Chunks
+  chunks: Annotation<ChunkedTranscript[]>,
+
+  //Summaries
   summary: Annotation<string>,
   title: Annotation<string>,
   subject: Annotation<'physics' | 'math' | 'cs' | 'english' | 'chemistry'>,
   mainTopic: Annotation<string>,
   topics: Annotation<string[]>,
-  studentName: Annotation<string>,
   
   evaluation: Annotation<string>,
   quiz: Annotation<QuizQuestion[]>,
   previousSession: Annotation<PreviousSession>,
 });
 
+export type ChunkedTranscript = z.infer<typeof ChunkedTranscriptSchema>;
+
+export const ChunkedTranscriptSchema = z.object({
+  summary: z.string().describe("The summary of the chunk"),
+  subject: z.enum(['physics', 'math', 'cs', 'english', 'chemistry']).describe("The subject of the chunk"),
+  mainTopic: z.string().describe("The main topic of the chunk"),
+  topics: z.array(z.string()).describe("The subtopics of the chunk")
+});
+
+export const CleanedTranscriptSchema = z.object({
+  cleanedTranscript: z.string().describe("The cleaned transcript of the tutoring session")
+});
+
 export const SummarySchema = z.object({
-  summary: z.string().describe("Concise summary of the tutoring session")
+  summary: z.string().describe("Concise summary of the tutoring session"),
+  subject: z.enum(['physics', 'math', 'cs', 'english', 'chemistry']).describe("The subject of the tutoring session"),
+  mainTopic: z.string().describe("The main topic of the tutoring session"),
+  subTopics: z.array(z.string()).describe("The subtopics of the tutoring session"),
+  title: z.string().describe("The title of the tutoring session")
 });
 
 

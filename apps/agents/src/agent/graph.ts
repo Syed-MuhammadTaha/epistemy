@@ -5,27 +5,30 @@ import { StateGraph } from "@langchain/langgraph";
 import {
   WorkflowAnnotation,
   cleanTranscriptNode,
-  summaryNode,
+  chunkMapTranscriptNode,
   topicsNode,
   evaluationNode,
   quizNode,
-  previousSessionNode
+  previousSessionNode,
+  reduceSummaryNode
 } from "./utils/index.js";
 
 // Define the complete workflow
 const workflow = new StateGraph(WorkflowAnnotation)
   // Add all nodes
   .addNode("cleanTranscript", cleanTranscriptNode)
-  .addNode("generateSummary", summaryNode)
+  .addNode("chunkMapTranscript", chunkMapTranscriptNode)
+  .addNode("reduceSummary", reduceSummaryNode)
   .addNode("extractTopics", topicsNode)
   .addNode("fetchPreviousSession", previousSessionNode)
   .addNode("evaluateProgress", evaluationNode)
   .addNode("generateQuiz", quizNode)
-  
+
   // Define the execution flow
   .addEdge("__start__", "cleanTranscript")
-  .addEdge("cleanTranscript", "generateSummary")
-  .addEdge("generateSummary", "extractTopics")
+  .addEdge("cleanTranscript", "chunkMapTranscript")
+  .addEdge("chunkMapTranscript", "reduceSummary")
+  .addEdge("reduceSummary", "extractTopics")
   .addEdge("extractTopics", "fetchPreviousSession")
   .addEdge("fetchPreviousSession", "evaluateProgress")
   .addEdge("evaluateProgress", "generateQuiz")

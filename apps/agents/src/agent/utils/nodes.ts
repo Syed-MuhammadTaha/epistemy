@@ -4,6 +4,7 @@
 import postgres from 'postgres';
 import { RunnableConfig } from "@langchain/core/runnables";
 import { ChatGroq } from "@langchain/groq";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { ChatOllama } from "@langchain/ollama";
 import {
   WorkflowState,
@@ -11,14 +12,18 @@ import {
   TopicsSchema,
   SummarySchema,
   EvaluationSchema,
-  QuizSchema
+  QuizSchema,
+  CleanedTranscriptSchema,
+  ChunkedTranscriptSchema
 } from "./state.js";
 import {
-  summaryPrompt,
+  reduceSummaryPrompt,
   topicsPrompt,
   evaluationWithHistoryPrompt,
   quizGenerationPrompt,
-  evaluationFirstSessionPrompt
+  evaluationFirstSessionPrompt,
+  cleanTranscriptPrompt,
+  mapTranscriptPrompt
 } from "./prompts.js";
 
 // Database connection setup
@@ -31,65 +36,85 @@ const sql = postgres(process.env.POSTGRES_URL!, {
 
 // Initialize the LLM (you can make this configurable later)
 const llm = new ChatGroq({
-  model: "llama-3.1-8b-instant",
+  model: "llama3-8b-8192",
   temperature: 0,
 });
 
-// Clean transcript node (no LLM needed)
+// const llm = new ChatOllama({
+//   model: "llama3.2:3b",
+//   temperature: 0,
+// });
+
 export async function cleanTranscriptNode(
-    state: WorkflowState,
-    _config: RunnableConfig,
-  ): Promise<WorkflowUpdate> {
-    console.log("🧹 Cleaning transcript...");
+  state: WorkflowState,
+  _config: RunnableConfig,
+): Promise<WorkflowUpdate> {
+  console.log("🧹 Cleaning transcript with LLM...");
+
+  console.log("🔍 Raw transcript:", state.transcript);
+
+  const chain = cleanTranscriptPrompt.pipe(llm.withStructuredOutput(CleanedTranscriptSchema));
+  const result = await chain.invoke({
+    rawTranscript: state.transcript
+  });
+
+  console.log("✅ Transcript cleaned successfully");
+
+  return { cleanedTranscript: result.cleanedTranscript};
+}
+
+export async function chunkMapTranscriptNode(
+  state: WorkflowState,
+  _config: RunnableConfig,
+): Promise<WorkflowUpdate> {
+  console.log("🔍 Chunking transcript...");
+
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 2000,
+    chunkOverlap: 500,
+  });
+
+  const chunks = await textSplitter.splitText(state.cleanedTranscript);
   
-    let text = state.transcript;
+  const mapResults = await Promise.all(chunks.map(async (chunk) => {
+    const chain = mapTranscriptPrompt.pipe(llm.withStructuredOutput(ChunkedTranscriptSchema));
+    const result = await chain.invoke({
+      chunk: chunk
+    });
+    return result;
+  }));
+
+  return { chunks: mapResults };
   
-    const cleanedTranscript = text
-      // 1. Remove timestamps in multiple formats
-      .replace(/\[?\(?\d{1,2}:\d{2}(?::\d{2})?\)?\]?/g, "")
-      // 2. Remove common transcription artifacts (inaudible, applause, etc.)
-      .replace(/\[(inaudible|crosstalk|music|applause|laughter|noise)\]/gi, "")
-      .replace(/\((inaudible|crosstalk|music|applause|laughter|noise)\)/gi, "")
-      // 3. Remove speaker labels (e.g., "John:", "Speaker 1:")
-      .replace(/^[A-Z][a-zA-Z0-9_ ]{0,20}:\s*/gm, "")
-      // 4. Remove filler words
-      .replace(/\b(um+|uh+|like|you know|i mean|sort of|kind of|ya know)\b/gi, "")
-      // 5. Collapse ellipses, excessive punctuation
-      .replace(/\.{2,}/g, ".")
-      .replace(/!{2,}/g, "!")
-      .replace(/\?{2,}/g, "?")
-      .replace(/([!?]){2,}/g, "$1")
-      // 6. Remove stray characters (—, *, #, etc.)
-      .replace(/[*#_~^`]/g, "")
-      // 7. Normalize whitespace
-      .replace(/\s+/g, " ")
-      // 8. Fix spacing before punctuation
-      .replace(/\s+([,.!?;:])/g, "$1")
-      // 9. Trim leading/trailing spaces
-      .trim();
-  
-    console.log("✅ Transcript cleaned successfully");
-  
-    return { cleanedTranscript };
-  }
-  
+}
 
 // Summary generation node
-export async function summaryNode(
+export async function reduceSummaryNode(
   state: WorkflowState,
   _config: RunnableConfig,
 ): Promise<WorkflowUpdate> {
   console.log('📝 Generating summary...');
   
-  const summaryChain = summaryPrompt.pipe(llm.withStructuredOutput(SummarySchema));
+  const summaryChain = reduceSummaryPrompt.pipe(llm.withStructuredOutput(SummarySchema));
   
+  const formattedChunks = state.chunks
+  .map((chunk, i) => {
+    return `Chunk ${i + 1}:
+    - Summary: ${chunk.summary}
+    - Subject: ${chunk.subject}
+    - MainTopic: ${chunk.mainTopic}
+    - SubTopics: ${chunk.topics.join(", ")}`;
+  })
+  .join("\n\n"); // Separate chunks with a blank line
+
+  // Now pass into chain
   const result = await summaryChain.invoke({
-    cleanedTranscript: state.cleanedTranscript || ""
+    chunks: formattedChunks, // matches your {chunks} variable in the reduce prompt
   });
   
   console.log('✅ Summary generated successfully');
   
-  return { summary: result.summary };
+  return { summary: result.summary, subject: result.subject, mainTopic: result.mainTopic, topics: result.subTopics, title: result.title };
 }
 
 // Topics extraction node
